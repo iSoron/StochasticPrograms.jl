@@ -210,21 +210,14 @@ function MOI.get(stochasticprogram::StochasticProgram, attr::ScenarioDependentVa
         if MOI.get(stochasticprogram, MOI.TerminationStatus()) == MOI.OPTIMIZE_NOT_CALLED
             throw(OptimizeNotCalled())
         end
-        try
-            # Try to get scenario-dependent value directly
-            return MOI.get(optimizer(stochasticprogram), attr, index(dvar))
-        catch
-            # Fallback to resolving scenario-dependence in structure if
-            # not supported natively by optimizer
-            return scenario_decision_dispatch(
-                structure(stochasticprogram),
-                index(dvar),
-                stage(dvar),
-                attr.scenario_index,
-                attr.attr,
-            ) do dref, attr
-                return MOI.get(owner_model(dref), attr, dref)
-            end
+        return scenario_decision_dispatch(
+            structure(stochasticprogram),
+            index(dvar),
+            stage(dvar),
+            attr.scenario_index,
+            attr.attr,
+        ) do dref, attr
+            return MOI.get(owner_model(dref), attr, dref)
         end
     end
     # Get value from structure if not set by optimizer
@@ -423,7 +416,7 @@ associated with result index `result` at `scenario_index` of the
 most-recent returned by the solver.
 """
 function JuMP.value(dvar::DecisionVariable, scenario_index::Integer; result::Int = 1)::Float64
-    stage(dvar) == 1 && error("$dvar is not scenario dependent, consider `value(dvar)`.")
+    stage(dvar) == 1 && error("dvar is not scenario dependent, consider `value(dvar)`.")
     d = decision(dvar, scenario_index)
     if d.state == Taken
         # If decision has been fixed the value can be fetched
